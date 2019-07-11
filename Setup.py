@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='P-Funk',
-      version=0.1,
+      version='0.1',
       description='Python package for Fresco UNcertainty Kalculations',
       author='Caleb Marshall',
       author_email='blah@nofuckingway.hotmail',
