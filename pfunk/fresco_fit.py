@@ -2,8 +2,7 @@ import os
 import numpy as np
 from scipy import interpolate
 from scipy import optimize as opt
-import FrescoClasses as fc
-import pymc as pm
+from . import fresco_classes as fc
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.stats import norm
 from scipy.stats import norm

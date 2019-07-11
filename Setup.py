@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(name='P-Funk',
       version='0.1',
@@ -8,5 +8,5 @@ setup(name='P-Funk',
       author='Caleb Marshall',
       author_email='blah@nofuckingway.hotmail',
       url='https://github.com/dubiousbreakfast/MCMC-FRESCO',
-      packages=['src'],
+      packages=find_packages(),
      )

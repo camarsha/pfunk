@@ -15,7 +15,7 @@ from scipy.stats import lognorm
 from scipy import interpolate
 import os
 import sys
-import FrescoClasses as fc
+from . import fresco_classes as fc
 
 
 class ScalePrior():
