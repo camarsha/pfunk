@@ -5,7 +5,7 @@ import emcee
 
 class Sampler():
 
-    def __init__(self, model, nwalker=50, nsteps=100):
+    def __init__(self, model, nwalker=50, nstep=100):
         self.ndim = len(model.x0)
         self.nwalker = nwalker
         self.nstep = nstep
