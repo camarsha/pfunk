@@ -72,7 +72,7 @@ class Sampler():
         self.sampler = emcee.EnsembleSampler(self.nwalker,
                                              self.ndim,
                                              self.model.lnprob)
-        self.sampler.run_mcmc(self.p0, self.nsteps, progress=True)
+        self.sampler.run_mcmc(self.p0, self.nstep, progress=True)
 
     def run_differential_ev(self):
         """
