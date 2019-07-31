@@ -27,15 +27,16 @@ class ScalePrior():
     the sum input values.
     """
 
-    def __init__(self, fu):
+    def __init__(self, means, widths):
         # First, dumb?, way I thought to allow scaler or np.array
-        self.factor_unc = np.asarray(fu)
+        self.means = np.asarray(means)
+        self.widths = np.asarray(widths)
         try:
-            self.prior_len = len(fu)
+            self.prior_len = len(means)
         except TypeError:
             self.prior_len = 1
 
-        self.pdf = lognorm(np.log(fu))
+        self.pdf = norm(loc=means, scale=widths)
 
     def lnprior(self, x):
         return np.sum(self.pdf.logpdf(x))
@@ -188,7 +189,43 @@ class LnLikeElastic(FrescoEval):
         likelihood = np.sum(likelihood)
         return likelihood
 
-    
+class LnLikeTransfer(FrescoEval, LnLikeElastic):
+
+    """
+    Transfer likelihood functions that assume fresco has already
+    been run (i.e elastic likelihood has already been called).
+    """
+
+    def __init__(self, fresco, data, normalized=False, cs_file='fort.202'):
+        FrescoEval.__init__(self, fresco, filename=cs_file)
+        LnLikeElastic.__init__(self, fresco, data, normalized=normalized)
+               
+    def fresco_chi(self, x):
+        spline = self.read_fresco()
+        try:
+            theory = spline(self.data.theta)
+        except TypeError:
+            return spline #  read_fresco returned -inf 
+        likelihood = norm.logpdf(theory,
+                                 loc=(self.data.sigma),
+                                 scale=self.data.erry)
+        likelihood = np.sum(likelihood) 
+        return likelihood
+
+
+    def norm_fresco_chi(self, x):
+        spline = self.read_fresco()
+        try:
+            theory = spline(self.data.theta)
+        except TypeError:
+            return spline
+        likelihood = norm.logpdf(theory,
+                                 loc=(self.data.sigma*x[0]),
+                                 scale=(self.data.erry*x[0]))
+        likelihood = np.sum(likelihood)
+        return likelihood
+
+            
 class Model():
 
     """
@@ -215,13 +252,14 @@ class Model():
     # These series of methods create all of the elements
     # needed for evaluating the lnprob.
         
-    def create_norm_prior(self, fu):
+    def create_norm_prior(self, means, widths):
         try:
-            norm_x0 = np.ones(len(fu))
+            norm_x0 = np.ones(len(means))
         except TypeError:
-            norm_x0 = [1.0]
-        self.norm_priors.append(ScalePrior(fu))
-
+            norm_x0 = np.array([1.0])
+        self.norm_priors.append(ScalePrior(means, widths))
+        self.x0 = np.concatenate((norm_x0[:], self.x0[:]))
+        
     def create_pot_prior(self, means, widths):
         self.pot_priors.append(PotPrior(means, widths))
 
@@ -243,3 +281,5 @@ class Model():
         for ele in self.likelihood:
             probability += ele.lnlike(x)
         return probability
+
+    
