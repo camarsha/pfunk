@@ -169,44 +169,55 @@ class NamelistInput():
                 self.initial_file.append(line)
 
         self.name_positions = []
-        self.new_file = np.asarray(self.initial_file)
+        self.new_file = np.asarray(self.initial_file[:])
         self.names = []
-         
-    def find_var_name(self, name):
-        """
-        This is the initial positions of the variables to be
-        changed. Once found, the goal is to never match strings again.
-        """
+
+    def unpacklist(self, alist):
+        new_list = []
+        for ele in alist:
+            if isinstance(ele, tuple):
+                for subele in ele:
+                    new_list.append(subele)
+            else:
+                new_list.append(ele)
+        return new_list
+
+    def find_tuples(self, alist):
+        # Just create a list with all the tuple indices, i.e duplicate values.
+        self.dup_index = [i for i,j in enumerate(alist) if isinstance(j, tuple)]
+        self.dup_size = [len(j) for j in alist if isinstance(j, tuple)]
+
+                                
+    def create_names_positions(self, names, positions):
+        self.find_tuples(positions)
+        self.names = self.unpacklist(names)
+        self.positions = self.unpacklist(positions)                        
+        self.unique_name_positions = [i[0] if isinstance(i, tuple) else i for i in positions]
         
-        positions = []
-
-        # Pick out all occurrences of the variable
-        for i, ele in enumerate(self.initial_file):
-            if name in ele:
-                positions.append(i) 
-
-        if len(positions) == 0:
-            print('Variable '+name+' not found!')
-
-        elif len(positions) > 1:
-            print('Multiple occurrences of '+name+' found.')
-            print('Adding variable on lines '+str(positions))
-            self.names.append()
-            for ele in positions:
-                self.name_positions.append(ele)
-
-        else:
-            print('Adding variable on lines '+str(positions[0]))
-            self.name_positions.append(positions[0])
-
+    def transform_values(self, values):
+                                
+        """
+        Transforms a array of n values to 
+        one of m values, where m is the length of
+        the vector including the duplicated/shared values defined before.
+        """
+        m_values = []
+        start = 0
+        for i,j in zip(self.dup_index, self.dup_size):
+            m_values.append(values[start:i])  # Single values
+            m_values.append(np.repeat(values[i], j))  # The copies
+            start = i + 1  # Move to next group of values 
+        m_values.append(values[i:])  # Finally collect the finally piece of array
+        return np.concatenate(m_values)  # Flatten everything
+            
     def swap_values(self, values):
         """
         Replaces the variables in the array and writes to a new input file.
         """
-        
+        values = self.transform_values(values)
         new_values = []
         # Construct the new strings to replace
-        for i, j in zip(self.names,values):
+        for i, j in zip(self.names, values):
             new_values.append('    '+i+' = '+str(j)+'\n') # Format the string properly
         self.new_file[self.name_positions] = new_values # Swap them
         # Now write to file
@@ -219,6 +230,12 @@ class NamelistInput():
         line numbers and names.
         """
         self.x0  = [] # Initial values 
-        for ele in self.name_positions:
+        for ele in self.unique_name_positions:
             value = self.initial_file[ele].split('=')[1]
             self.x0.append(float(value))
+
+    def create_original(self):
+        np.savetxt('new_input', self.initial_file,
+                   fmt=('%s'), newline='')
+
+        

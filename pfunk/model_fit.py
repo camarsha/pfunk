@@ -3,11 +3,40 @@ import numpy as np
 from scipy import interpolate
 from scipy import optimize as opt
 from . import fresco_classes as fc
-from scipy.interpolate import InterpolatedUnivariateSpline
+import scipy.interpolate  
 from scipy.stats import norm
 from scipy.stats import norm
 import sys
 from scipy.stats import uniform
+
+
+
+# General utilities for quick spectroscopic factor checks.
+
+def cross_interpolate(cross):
+    return interpolate.UnivariateSpline(cross.theta,
+                                        cross.sigma,
+                                        s=0)
+
+def sf_chi_sq(theory, exper, err, sf):
+    return (((theory*sf)-exper)/(err))**2.0
+
+
+def spec_chi(sf, cross, data):
+    spline = cross_interpolate(cross)
+    theory = spline(data.theta)
+    exper = data.sigma
+    err = data.erry
+    #create list of spectroscopic factor so I can use map
+    sf = sf*np.ones(len(exper))
+    chi_list = list(map(sf_chi_sq, theory, exper, err, sf))
+    return np.sum(chi_list)
+
+
+def spec_factors(cross,data):
+    result = opt.minimize(spec_chi,1.0,method='Nelder-Mead',
+                          args=(cross,data))
+    return result.x
 
 
 #trying to enforce bounds on the basin hopping with this condition. Ripped straight from scipy page
