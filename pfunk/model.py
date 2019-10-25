@@ -244,8 +244,8 @@ class Model():
                  fresco_positions, **kwargs):
         self.fresco_path = fresco_path
         self.fresco = fc.NamelistInput(fresco_path)
-        self.fresco.names = fresco_names
-        self.fresco.name_positions = fresco_positions
+        self.fresco.create_names_positions(fresco_names,
+                                           fresco_positions)
         # Model gets built up assuming potential priors
         # first and then additional variables on top
         self.fresco.initial_values()

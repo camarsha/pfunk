@@ -184,14 +184,12 @@ class NamelistInput():
 
     def find_tuples(self, alist):
         # Just create a list with all the tuple indices, i.e duplicate values.
-        self.dup_index = [i for i,j in enumerate(alist) if isinstance(j, tuple)]
-        self.dup_size = [len(j) for j in alist if isinstance(j, tuple)]
-
+        self.dup_size = [len(i) if isinstance(i, tuple) else 1 for i in x]
                                 
     def create_names_positions(self, names, positions):
         self.find_tuples(positions)
         self.names = self.unpacklist(names)
-        self.positions = self.unpacklist(positions)                        
+        self.name_positions = self.unpacklist(positions)                        
         self.unique_name_positions = [i[0] if isinstance(i, tuple) else i for i in positions]
         
     def transform_values(self, values):
@@ -201,13 +199,7 @@ class NamelistInput():
         one of m values, where m is the length of
         the vector including the duplicated/shared values defined before.
         """
-        m_values = []
-        start = 0
-        for i,j in zip(self.dup_index, self.dup_size):
-            m_values.append(values[start:i])  # Single values
-            m_values.append(np.repeat(values[i], j))  # The copies
-            start = i + 1  # Move to next group of values 
-        m_values.append(values[i:])  # Finally collect the finally piece of array
+        m_values = [np.repeat(i, j) for i,j in zip(values, self.dup_size)]
         return np.concatenate(m_values)  # Flatten everything
             
     def swap_values(self, values):
