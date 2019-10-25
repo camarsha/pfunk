@@ -8,6 +8,7 @@ log-likelihood functions.
 Caleb Marshall NCSU/TUNL 2019
 """
 import numpy as np
+import dynesty as dy
 from scipy.stats import norm
 from scipy.stats import halfnorm
 from scipy.stats import uniform
@@ -42,6 +43,9 @@ class ScalePrior():
     def lnprior(self, x):
         return np.sum(self.pdf.logpdf(x))
 
+    def prior_transform(self, x):
+        return self.ppf(x)
+
 class PotPrior():
 
     """
@@ -66,6 +70,9 @@ class PotPrior():
     def lnprior(self, x):
         return np.sum(self.pdf.logpdf(x))
 
+    def prior_transform(self, x):
+        return self.ppf(x)
+    
 class Priors():
 
     """
@@ -82,10 +89,12 @@ class Priors():
         self.prior_len = []
         self.prior_functions = []
         self.x0 = []
+        self.prior_transforms = []
         for ele in priors:
             self.prior_len.append(ele.prior_len)
             self.prior_functions.append(ele.lnprior)
             self.x0.append(ele.means)
+            self.prior_transforms.append(ele.prior_transform)
         try:
             self.x0 = np.concatenate(self.x0)
         except ValueError:
@@ -112,6 +121,16 @@ class Priors():
                   in zip(self.slice_indices, self.prior_functions)]
         return np.sum(values)
 
+    def transform_prior(self, x):
+        """
+        For use with nested sampler. Returns a vector
+        of transformed values from the uniform distribution
+        input values.
+        """
+        values = [f(x[i[0]:i[1]]) for i, f
+                  in zip(self.slice_indices, self.prior_functions)]
+        return np.concatenate(values)
+        
 class FrescoEval():
     """
     Handles the swapping of the new values, reading
@@ -334,4 +353,10 @@ class Model():
             return -1.0 * np.inf
         return probability
 
-    
+    def lnlike(self, x):
+        self.run_fresco(x)
+        for ele in self.likelihood:
+            probability += ele.lnlike(x)
+        if np.isnan(probability):
+            return -1.0 * np.inf
+        return probability

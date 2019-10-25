@@ -184,7 +184,7 @@ class NamelistInput():
 
     def find_tuples(self, alist):
         # Just create a list with all the tuple indices, i.e duplicate values.
-        self.dup_size = [len(i) if isinstance(i, tuple) else 1 for i in x]
+        self.dup_size = [len(i) if isinstance(i, tuple) else 1 for i in alist]
                                 
     def create_names_positions(self, names, positions):
         self.find_tuples(positions)

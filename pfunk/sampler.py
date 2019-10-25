@@ -89,11 +89,11 @@ class Sampler():
         self.sampler.run_mcmc(self.p0, self.nstep, progress=True)
 
     def run_dynest(self):
-        self.sampler = dynesty.DynamicNestedSampler(self.model.lnlike,
-                                                    self.model.prior_transform,
-                                                    ndim=self.ndim,
-                                                    bound='none',
-                                                    sample='rslice',
-                                                    slices=10, nlive=200)
-        self.sampler.run_nested(wt_kwargs={'pfrac': 1.0})
+        self.sampler = dynesty.NestedSampler(self.model.lnlike,
+                                             self.model.priors.prior_transform,
+                                             ndim=self.ndim,
+                                             bound='multi',
+                                             sample='rwalk',
+                                             nlive=1000)
+        self.sampler.run_nested(dlogz=.01)
 
