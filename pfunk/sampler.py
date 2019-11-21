@@ -1,7 +1,6 @@
 import numpy as np
 import emcee
-
-
+import dynesty
 
 class Sampler():
 
@@ -50,6 +49,11 @@ class Sampler():
 
         return None
 
+    def prior_sample_init(self):
+        self.ball_init()
+        for ele in self.p0:
+            ele = self.model.priors.prior_sample()
+        
     def free_sig_init(self, scatter=1.e-2):
         """
         Does a ball initialization on potential and sigma parameters.
@@ -88,12 +92,12 @@ class Sampler():
                                              moves=move)
         self.sampler.run_mcmc(self.p0, self.nstep, progress=True)
 
-    def run_dynest(self):
-        self.sampler = dynesty.NestedSampler(self.model.lnlike,
-                                             self.model.priors.prior_transform,
+    def run_dynest(self, nlive=250):
+        self.sampler = dynesty.NestedSampler(self.model.lnlikefunc,
+                                             self.model.priors.transform_prior,
                                              ndim=self.ndim,
                                              bound='multi',
                                              sample='rwalk',
-                                             nlive=1000)
+                                             nlive=nlive)
         self.sampler.run_nested(dlogz=.01)
 

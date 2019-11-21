@@ -110,7 +110,7 @@ class ElasticFit():
             bounds = BasinBounds(upper,lower)
             return bounds
         else:
-            return lower,upper
+            return lower, upper
 
     #asks user to give metrolpolis parameters
     def set_basin(self):
@@ -125,7 +125,7 @@ class ElasticFit():
     def run(self):
         result = opt.basinhopping(self.lnprob, self.x0,minimizer_kwargs={'method':'Nelder-Mead'},
                                   niter=self.steps, stepsize=self.step_size,
-                                  T=self.T,callback=self.print_fun,
+                                  T=self.T, callback=self.print_fun,
                                   accept_test=self.bounds, take_step=self.take_step)
         self.results = result
         #now use the best result to generate the fit
@@ -133,14 +133,29 @@ class ElasticFit():
     #differential evolution approach
     def run_differential(self):
         #get bounds
-        up, low = self.set_bounds(self.percent_range, bnds=False)
-        bnds = [(i,j) for i,j in zip(up,low)]
+        low, up = self.set_bounds(self.percent_range, bnds=False)
+        bnds = [(i,j) for i,j in zip(low,up)]
         result = opt.differential_evolution(self.lnprob, bnds)
+        self.results = result
+
+    def run_anneal(self, max_iter=100):
+        #get bounds
+        low, up = self.set_bounds(self.percent_range, bnds=False)
+        bnds = [(i,j) for i,j in zip(low,up)]
+        result = opt.dual_annealing(self.lnprob, bnds, maxiter=max_iter, local_search_options={'method':'Nelder-Mead'},
+                                    x0=self.model.x0, callback=self.print_fun)
         self.results = result
       
     def single_run(self):
         result = opt.minimize(new_elastic_chi, self.x0, method='Nelder-Mead', args=(self.fresco, self.data))
         self.results = result
+
+    def special_sauce(self, iterations=50):
+        for i in range(iterations):
+            x0 = self.model.priors.prior_sample()
+            result = opt.minimize(self.lnprob, x0, method='Nelder-Mead')
+            sys.stdout.write("\r Minimum %.4f, iteration %d." % (result.fun, i+1))
+            self.accepted_values.append({'x':result.x, 'chi2':result.fun})
 
 class TransferFit(ElasticFit):
 
