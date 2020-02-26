@@ -78,26 +78,44 @@ class Sampler():
                                              self.model.lnprob)
         self.sampler.run_mcmc(self.p0, self.nstep, progress=True)
 
-    def run_differential_ev(self):
-        """
-        Run the sampler with a differential evolution move.
-        Following the suggestions of Braak and Vrugt 2008
-        the DE move is mixed with a snooker move. This mixture
-        is a 90/10 split.
-        """
-        move = ((emcee.moves.DEMove(), .9), (emcee.moves.DESnookerMove(), .1))
-        self.sampler = emcee.EnsembleSampler(self.nwalker,
-                                             self.ndim,
-                                             self.model.lnprob,
-                                             moves=move)
-        self.sampler.run_mcmc(self.p0, self.nstep, progress=True)
+    # def run_differential_ev(self):
+    #     """
+    #     Run the sampler using the pydream module.
+    #     https://github.com/LoLab-VU/PyDREAM
+    #     """
+        
+    #     self.sampler = run_dream(self.model.dream_priors,
+    #                              self.model.lnlikefunc,
+    #                              nchains=self.nwalker,
+    #                              niterations=self.nstep,
+    #                              start = self.p0)
+                                              
 
-    def run_dynest(self, nlive=250):
+    def run_nested(self, nlive=250, dlogz=.01, sample='slice', bound='multi'):
         self.sampler = dynesty.NestedSampler(self.model.lnlikefunc,
                                              self.model.priors.transform_prior,
                                              ndim=self.ndim,
-                                             bound='multi',
-                                             sample='rwalk',
+                                             bound=bound,
+                                             sample=sample,
                                              nlive=nlive)
-        self.sampler.run_nested(dlogz=.01)
+        self.sampler.run_nested(dlogz=dlogz)
 
+    def run_dynamic_nested(self, evidence=False, posterior=False):
+        self.sampler = dynesty.DynamicNestedSampler(self.model.lnlikefunc,
+                                                    self.model.priors.transform_prior,
+                                                    ndim=self.ndim,
+                                                    bound='multi',
+                                                    sample='slice')
+        if evidence and posterior:
+            print('Both, really? Going to default')
+            self.sampler.run_nested()
+        elif evidence:
+            # evidence focused dynamic run
+            self.sampler.run_nested(wt_kwargs={'pfrac': 0.0},
+                                    stop_kwargs={'pfrac': 0.0})
+        elif posterior:
+            # evidence focused dynamic run
+            self.sampler.run_nested(wt_kwargs={'pfrac': 1.0})    
+        else:
+            # Default behavior, 80/20 weight split and 100% posterior. 
+            self.sampler.run_nested()

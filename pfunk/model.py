@@ -14,10 +14,14 @@ from scipy.stats import halfnorm
 from scipy.stats import uniform
 from scipy.stats import halfcauchy
 from scipy.stats import lognorm
+from scipy.stats import t
+from scipy.stats import gamma
 from scipy import interpolate
 import os
 import sys
 from . import fresco_classes as fc
+#from pydream.parameters import SampledParam 
+
 
 class FlatPrior():
 
@@ -33,17 +37,16 @@ class FlatPrior():
     def prior_transform(self, x):
         return self.pdf.ppf(x)
 
-    def prior_rvs(self,):
+    def prior_rvs(self):
         return self.pdf.rvs()
-
 
 class ScatterPrior():
 
 
     def __init__(self):
         self.means = np.array([0.0])
-        self.widths = np.array([25.0])
-        self.pdf = halfnorm(loc=self.means, scale=self.widths)
+        self.widths = np.array([1.0])
+        self.pdf = halfnorm(self.means, scale=self.widths)
         self.prior_len = 1
 
     def lnprior(self, x):
@@ -52,7 +55,7 @@ class ScatterPrior():
     def prior_transform(self, x):
         return self.pdf.ppf(x)
 
-    def prior_rvs(self,):
+    def prior_rvs(self):
         return self.pdf.rvs()
 
 
@@ -251,7 +254,7 @@ class LnLikeElastic(FrescoEval):
     normalization adjusts the likelihood function to include a factor_unc.
     """
 
-    def __init__(self, filename, data, norm_index=False):
+    def __init__(self, filename, data, norm_index=False, scatter_index=False):
         FrescoEval.__init__(self, filename)
 
         # This block makes sure we have a fc.DataObject
@@ -266,6 +269,14 @@ class LnLikeElastic(FrescoEval):
             self.lnlike = self.norm_fresco_chi
         else:
             self.lnlike = self.fresco_chi
+
+        if isinstance(scatter_index, int):        
+            self.scatter_index = scatter_index
+            if isinstance(norm_index, int):    
+                self.lnlike = self.norm_scatter_chi
+            else:
+                self.lnlike = self.scatter_chi
+
             
     def fresco_chi(self, x):
         spline = self.read_fresco()
@@ -273,8 +284,8 @@ class LnLikeElastic(FrescoEval):
             theory = spline(self.data.theta)
         except TypeError:
             return spline #  read_fresco returned -inf 
-        likelihood = norm.logpdf(theory,
-                                 loc=(self.data.sigma),
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory),
                                  scale=self.data.erry)
         likelihood = np.sum(likelihood) 
         return likelihood
@@ -286,12 +297,29 @@ class LnLikeElastic(FrescoEval):
             theory = spline(self.data.theta)
         except TypeError:
             return spline
-        likelihood = norm.logpdf(theory,
-                                 loc=(self.data.sigma*x[self.i]),
-                                 scale=(self.data.erry*x[self.i]))
+        n = 10.0**(x[self.i])
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=theory*n,
+                                 scale=self.data.erry)
         likelihood = np.sum(likelihood)
         return likelihood
 
+    def norm_scatter_chi(self, x):
+        spline = self.read_fresco()
+        try:
+            theory = spline(self.data.theta)
+        except TypeError:
+            return spline
+        n = 10.0**(x[self.i])
+        scale = np.sqrt((self.data.erry)**2.0 +
+                        (n*theory*x[self.scatter_index])**2.0)
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory*n),
+                                 scale=scale)
+        likelihood = np.sum(likelihood)
+        return likelihood
+
+    
 class LnLikeTransfer(LnLikeElastic):
 
     """
@@ -301,17 +329,11 @@ class LnLikeTransfer(LnLikeElastic):
 
     def __init__(self, filename, data, sf_index, scatter_index=None,
                  norm_index=None):
-        
-        LnLikeElastic.__init__(self, filename, data, norm_index=norm_index)
+
+        # The assignement of lnlike is the same, but we redefine their forms below.
+        LnLikeElastic.__init__(self, filename, data, norm_index=norm_index, scatter_index=scatter_index)
 
         self.sf_index = sf_index
-        self.scatter_index = scatter_index
-        if isinstance(scatter_index, int):
-            
-            if isinstance(norm_index, int):
-                self.lnlike = self.norm_scatter_chi
-            else:
-                self.lnlike = self.scatter_chi
                 
     def fresco_chi(self, x):
         """
@@ -324,8 +346,8 @@ class LnLikeTransfer(LnLikeElastic):
         except TypeError:
             return spline #  read_fresco returned -inf
         sf = np.prod(x[self.sf_index])
-        likelihood = norm.logpdf(theory*sf,
-                                 loc=(self.data.sigma),
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory*sf),
                                  scale=self.data.erry)
         likelihood = np.sum(likelihood) 
         return likelihood
@@ -337,9 +359,10 @@ class LnLikeTransfer(LnLikeElastic):
         except TypeError:
             return spline
         sf = np.prod(x[self.sf_index])
-        likelihood = norm.logpdf(theory*sf,
-                                 loc=(self.data.sigma*x[self.i]),
-                                 scale=(self.data.erry*x[self.i]))
+        n = 10.0**(x[self.i])
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory*sf*n),
+                                 scale=(self.data.erry))
         likelihood = np.sum(likelihood)
         return likelihood
 
@@ -350,10 +373,11 @@ class LnLikeTransfer(LnLikeElastic):
         except TypeError:
             return spline
         sf = np.prod(x[self.sf_index])
-        scale = np.sqrt((self.data.erry*x[self.i])**2.0 +
-                        x[self.scatter_index]**2.0)
-        likelihood = norm.logpdf(theory*sf,
-                                 loc=(self.data.sigma*x[self.i]),
+        n = 10.0**(x[self.i])
+        scale = np.sqrt((self.data.erry)**2.0 +
+                        (n*sf*theory*x[self.scatter_index])**2.0)
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory*sf*n),
                                  scale=scale)
         likelihood = np.sum(likelihood)
         return likelihood
@@ -369,10 +393,10 @@ class LnLikeTransfer(LnLikeElastic):
         except TypeError:
             return spline #  read_fresco returned -inf
         sf = np.prod(x[self.sf_index])
-        scale = np.sqrt((self.data.erry*x[self.i])**2.0 +
-                        x[self.scatter_index]**2.0)
-        likelihood = norm.logpdf(theory*sf,
-                                 loc=(self.data.sigma),
+        scale = np.sqrt((self.data.erry)**2.0 +
+                        (sf*theory*x[self.scatter_index])**2.0)
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory*sf),
                                  scale=scale)
         likelihood = np.sum(likelihood) 
         return likelihood
@@ -406,6 +430,7 @@ class Model():
         self.norm_len = 0
         self.sf_len = 0
         self.scatter_len = 0
+        self.dream_priors = []
 
     # These series of methods create all of the elements
     # needed for evaluating the lnprob.
@@ -415,7 +440,7 @@ class Model():
             norm_x0 = np.ones(len(means))
         except TypeError:
             norm_x0 = np.array([1.0])
-        self.norm_priors.append(ScalePrior(means, widths))
+        self.norm_priors.append(FlatPrior(means, widths))
 
         
     def create_spec_prior(self, means, widths, gaus=False):
@@ -437,19 +462,23 @@ class Model():
 
     def create_prior(self):
         # This establishes the canonical order for our inputs
-        # Normalization first, spectroscopic factors next, transfer scatter and finally fresco variables 
-        self.priors = Priors(self.norm_priors + self.spec_priors +
-                             self.scatter_priors + self.pot_priors)
+        # Normalization first, spectroscopic factors next, transfer scatter and finally fresco variables
+        prior_list = self.norm_priors + self.spec_priors + self.scatter_priors + self.pot_priors
+        self.priors = Priors(prior_list)
         # We now set variables that will slice up the array passed by the sampler
         self.norm_len = len(self.norm_priors)
         self.sf_len = len(self.spec_priors)
         self.scatter_len = len(self.scatter_priors)
         self.x0 = self.priors.x0[:]
+        # For compatibility with pydreams
+        # for ele in prior_list:
+        #     self.dream_priors.append(SampledParam(ele.pdf))
 
-    def create_elastic_likelihood(self, filename, data, norm_index=None):
+    def create_elastic_likelihood(self, filename, data, norm_index=None, scatter_index=None):
         self.likelihood.append(LnLikeElastic(filename,
                                              data,
-                                             norm_index=norm_index))
+                                             norm_index=norm_index,
+                                             scatter_index=scatter_index))
 
     def create_transfer_likelihood(self, filename, data, sf_index,
                                    scatter_index=None, norm_index=None):

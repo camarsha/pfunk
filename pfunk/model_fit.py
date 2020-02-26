@@ -5,7 +5,6 @@ from scipy import optimize as opt
 from . import fresco_classes as fc
 import scipy.interpolate  
 from scipy.stats import norm
-from scipy.stats import norm
 import sys
 from scipy.stats import uniform
 
@@ -65,8 +64,9 @@ class ElasticStep(object):
 #Because of the constrains by the scipy otimize package this needed to be a class, or I would have had global variables out the ass.
 class ElasticFit():
 
-    def __init__(self, model, percent_range=.2): #user selects what range they want to vary potentials within defualts to 20%
+    def __init__(self, model, percent_range=.2, lnlike=False): #user selects what range they want to vary potentials within defualts to 20%
         self.model = model
+        self.lnlike = lnlike
         self.fresco = model.fresco
         self.x0 = np.asarray(self.model.x0[:])
         self.init_chi = self.lnprob(self.x0) #get inital chi square value
@@ -88,7 +88,10 @@ class ElasticFit():
         self.accepted_values = []
 
     def lnprob(self, x):
-        val = self.model.lnprob(x)
+        if self.lnlike:
+            val = self.model.lnlikefunc(x)
+        else:
+            val = self.model.lnprob(x)
         return -1.0 * val
 
     #callback function that is passed data after each basin iteration    
@@ -109,7 +112,7 @@ class ElasticFit():
         if bnds:
             bounds = BasinBounds(upper,lower)
             return bounds
-        else:
+        else:            
             return lower, upper
 
     #asks user to give metrolpolis parameters
