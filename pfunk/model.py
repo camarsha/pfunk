@@ -401,6 +401,139 @@ class LnLikeTransfer(LnLikeElastic):
         likelihood = np.sum(likelihood) 
         return likelihood
 
+class LnLikeTransferTwoL(LnLikeElastic):
+
+    """
+    Transfer likelihood functions that assume fresco has already
+    been run (i.e elastic likelihood has already been called).
+    For the two l case we assume one fresco file still produced
+    all of the cross sections.
+    """
+
+    def __init__(self, filename1, filename2, data,
+                 sf_index1, sf_index2, scatter_index=None,
+                 norm_index=None):
+        self.cs_eval1 = FrescoEval(filename1)
+        self.cs_eval2 = FrescoEval(filename2)
+
+        self.sf_index1 = sf_index1
+        self.sf_index2 = sf_index2
+        
+        # This block makes sure we have a fc.DataObject
+        try:
+            self.data = fc.read_data(data)
+        except ValueError:
+            self.data = data
+
+        # Whatever function is chosen we still call lnlike
+        if isinstance(norm_index, int):
+            self.i = norm_index
+            self.lnlike = self.norm_fresco_chi
+        else:
+            self.lnlike = self.fresco_chi
+
+        if isinstance(scatter_index, int):        
+            self.scatter_index = scatter_index
+            if isinstance(norm_index, int):    
+                self.lnlike = self.norm_scatter_chi
+            else:
+                self.lnlike = self.scatter_chi
+
+                
+    def fresco_chi(self, x):
+        """
+        Likelihood that reads both cross sections
+        and adds them together to compare to the
+        data.
+        """
+        spline1 = self.cs_eval1.read_fresco()
+        spline2 = self.cs_eval2.read_fresco()
+        try:
+            theory1 = spline1(self.data.theta)
+            theory2 = spline2(self.data.theta)
+        except TypeError:
+            return spline1  # read_fresco returned -inf
+        sf1 = np.prod(x[self.sf_index1])
+        sf2 = np.prod(x[self.sf_index2])
+        theory_total = sf1*theory1 + sf2*theory2
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory_total),
+                                 scale=self.data.erry)
+        likelihood = np.sum(likelihood) 
+        return likelihood
+
+    def norm_fresco_chi(self, x):
+        """
+        For this case we have a common factor, n, 
+        which is shared by both cross sections.
+        """
+        spline1 = self.cs_eval1.read_fresco()
+        spline2 = self.cs_eval2.read_fresco()
+        try:
+            theory1 = spline1(self.data.theta)
+            theory2 = spline2(self.data.theta)
+        except TypeError:
+            return spline1  # read_fresco returned -inf
+        sf1 = np.prod(x[self.sf_index1])
+        sf2 = np.prod(x[self.sf_index2])
+        n = 10.0**(x[self.i])
+        theory_total = sf1*n*theory1 + sf2*n*theory2
+        
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory_total),
+                                 scale=(self.data.erry))
+        likelihood = np.sum(likelihood)
+        return likelihood
+
+    def norm_scatter_chi(self, x):
+        """
+        Error estimate, f, is multiplied by the total cross section.
+        """
+        spline1 = self.cs_eval1.read_fresco()
+        spline2 = self.cs_eval2.read_fresco()
+        try:
+            theory1 = spline1(self.data.theta)
+            theory2 = spline2(self.data.theta)
+        except TypeError:
+            return spline1  # read_fresco returned -inf
+        
+        sf1 = np.prod(x[self.sf_index1])
+        sf2 = np.prod(x[self.sf_index2])
+        n = 10.0**(x[self.i])
+        theory_total = sf1*n*theory1 + sf2*n*theory2
+        
+        scale = np.sqrt((self.data.erry)**2.0 +
+                        (theory_total*x[self.scatter_index])**2.0)
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory_total),
+                                 scale=scale)
+        likelihood = np.sum(likelihood)
+        return likelihood
+
+    def scatter_chi(self, x):
+        """
+        Scatter without the normalization.
+        """
+        spline1 = self.cs_eval1.read_fresco()
+        spline2 = self.cs_eval2.read_fresco()
+        try:
+            theory1 = spline1(self.data.theta)
+            theory2 = spline2(self.data.theta)
+        except TypeError:
+            return spline1  # read_fresco returned -inf
+        
+        sf1 = np.prod(x[self.sf_index1])
+        sf2 = np.prod(x[self.sf_index2])
+        theory_total = sf1*theory1 + sf2*theory2
+
+        scale = np.sqrt((self.data.erry)**2.0 +
+                        (theory_total*x[self.scatter_index])**2.0)
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory_total),
+                                 scale=scale)
+        likelihood = np.sum(likelihood) 
+        return likelihood
+
     
 class Model():
 
@@ -487,6 +620,18 @@ class Model():
                                                        sf_index,
                                                        scatter_index=scatter_index,
                                                        norm_index=norm_index))
+
+    def create_two_l_transfer_likelihood(self, filename1, filename2,
+                                         data, sf_index1, sf_index2,
+                                         scatter_index=None, norm_index=None):
+        self.transfer_likelihood.append(LnLikeTransferTwoL(filename1,
+                                                           filename2,
+                                                           data,
+                                                           sf_index1,
+                                                           sf_index2,
+                                                           scatter_index=scatter_index,
+                                                           norm_index=norm_index))
+        
     def create_likelihood(self):
         # If transfer reactions are just file reads after
         self.likelihood = self.likelihood + self.transfer_likelihood
