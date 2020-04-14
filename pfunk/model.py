@@ -225,15 +225,17 @@ class FrescoEval():
     evaluation. Takes an fc.NamelistInput object and filename
     for the cross section.
     """
-    def __init__(self, filename):
+    def __init__(self, filename, remove=True):
             self.filename = filename
+            self.remove = remove
             
     def read_fresco(self):
         try:
             cross = fc.read_cross(self.filename)
         except IOError:
             return -1.0*np.inf
-        os.remove(self.filename)
+        if self.remove:
+            os.remove(self.filename)
         spline = interpolate.UnivariateSpline(cross.theta,
                                               cross.sigma,
                                               s=0)
@@ -254,8 +256,9 @@ class LnLikeElastic(FrescoEval):
     normalization adjusts the likelihood function to include a factor_unc.
     """
 
-    def __init__(self, filename, data, norm_index=False, scatter_index=False):
-        FrescoEval.__init__(self, filename)
+    def __init__(self, filename, data, norm_index=False, scatter_index=False,
+                 remove=True):
+        FrescoEval.__init__(self, filename, remove=remove)
 
         # This block makes sure we have a fc.DataObject
         try:
@@ -328,10 +331,11 @@ class LnLikeTransfer(LnLikeElastic):
     """
 
     def __init__(self, filename, data, sf_index, scatter_index=None,
-                 norm_index=None):
+                 norm_index=None, remove=True):
 
         # The assignement of lnlike is the same, but we redefine their forms below.
-        LnLikeElastic.__init__(self, filename, data, norm_index=norm_index, scatter_index=scatter_index)
+        LnLikeElastic.__init__(self, filename, data, norm_index=norm_index,
+                               scatter_index=scatter_index, remove=remove)
 
         self.sf_index = sf_index
                 
@@ -412,9 +416,9 @@ class LnLikeTransferTwoL(LnLikeElastic):
 
     def __init__(self, filename1, filename2, data,
                  sf_index1, sf_index2, scatter_index=None,
-                 norm_index=None):
-        self.cs_eval1 = FrescoEval(filename1)
-        self.cs_eval2 = FrescoEval(filename2)
+                 norm_index=None, remove=True):
+        self.cs_eval1 = FrescoEval(filename1, remove=remove)
+        self.cs_eval2 = FrescoEval(filename2, remove=remove)
 
         self.sf_index1 = sf_index1
         self.sf_index2 = sf_index2
@@ -607,30 +611,31 @@ class Model():
         # for ele in prior_list:
         #     self.dream_priors.append(SampledParam(ele.pdf))
 
-    def create_elastic_likelihood(self, filename, data, norm_index=None, scatter_index=None):
+    def create_elastic_likelihood(self, filename, data, norm_index=None,
+                                  scatter_index=None, remove=True):
         self.likelihood.append(LnLikeElastic(filename,
                                              data,
                                              norm_index=norm_index,
-                                             scatter_index=scatter_index))
+                                             scatter_index=scatter_index, remove=remove))
 
     def create_transfer_likelihood(self, filename, data, sf_index,
-                                   scatter_index=None, norm_index=None):
+                                   scatter_index=None, norm_index=None, remove=True):
         self.transfer_likelihood.append(LnLikeTransfer(filename,
                                                        data,
                                                        sf_index,
                                                        scatter_index=scatter_index,
-                                                       norm_index=norm_index))
+                                                       norm_index=norm_index, remove=remove))
 
     def create_two_l_transfer_likelihood(self, filename1, filename2,
                                          data, sf_index1, sf_index2,
-                                         scatter_index=None, norm_index=None):
+                                         scatter_index=None, norm_index=None, remove=True):
         self.transfer_likelihood.append(LnLikeTransferTwoL(filename1,
                                                            filename2,
                                                            data,
                                                            sf_index1,
                                                            sf_index2,
                                                            scatter_index=scatter_index,
-                                                           norm_index=norm_index))
+                                                           norm_index=norm_index, remove=remove))
         
     def create_likelihood(self):
         # If transfer reactions are just file reads after

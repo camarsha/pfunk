@@ -100,12 +100,13 @@ class Sampler():
                                              nlive=nlive)
         self.sampler.run_nested(dlogz=dlogz)
 
-    def run_dynamic_nested(self, evidence=False, posterior=False):
+    def run_dynamic_nested(self, evidence=False, posterior=False,
+                           nlive=250, sample='slice'):
         self.sampler = dynesty.DynamicNestedSampler(self.model.lnlikefunc,
                                                     self.model.priors.transform_prior,
                                                     ndim=self.ndim,
                                                     bound='multi',
-                                                    sample='slice')
+                                                    sample=sample, nlive=nlive)
         if evidence and posterior:
             print('Both, really? Going to default')
             self.sampler.run_nested()

@@ -9,7 +9,7 @@ from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 import seaborn as sbs
 import scipy.stats.kde as kde 
-
+import dynesty
 
 
 def hpd_grid(sample, alpha=0.32, roundto=2):
@@ -199,3 +199,19 @@ def parameters_values(samples):
                                     [16, 50, 84],
                                     axis=0))]
     return values
+
+def make_samples_dynesty(results):
+    """Uses dynesty's resampling function 
+       to return equally weighted samples.
+          
+    :param results: the results dictionary from dynesty.  
+    :returns: equally weighted samples
+    :rtype: numpy array
+
+    """
+
+    # Construct the sample weights
+    weights = np.exp(results['logwt'] - results['logz'][-1])
+    # Resample
+    samples = dynesty.utils.resample_equal(results['samples'], weights)
+    return samples
