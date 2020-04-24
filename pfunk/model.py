@@ -15,14 +15,40 @@ from scipy.stats import uniform
 from scipy.stats import halfcauchy
 from scipy.stats import lognorm
 from scipy.stats import t
-from scipy.stats import gamma
+from scipy.stats import expon
 from scipy import interpolate
 import os
 import sys
 from . import fresco_classes as fc
 #from pydream.parameters import SampledParam 
 
+class GenPrior():
 
+    def __init__(self):
+        self.pdf = norm()
+
+    def lnprior(self, x):
+        return np.sum(self.pdf.logpdf(x))
+
+    def prior_transform(self, x):
+        return self.pdf.ppf(x)
+
+    def prior_rvs(self):
+        return self.pdf.rvs()
+
+
+class DofPrior(GenPrior):
+    """
+    Defines an exponential prior intended for use
+    with the t-distribution dof parameter, nu.
+    """
+    
+    def __init__(self, means):
+        self.means = np.array(means)
+        self.pdf = expon(scale=self.means)
+        self.prior_len = 1
+
+    
 class FlatPrior():
 
     def __init__(self, lower, upper):
@@ -314,11 +340,25 @@ class LnLikeElastic(FrescoEval):
         except TypeError:
             return spline
         n = 10.0**(x[self.i])
-        scale = np.sqrt((self.data.erry)**2.0 +
-                        (n*theory*x[self.scatter_index])**2.0)
-        likelihood = norm.logpdf(self.data.sigma,
-                                 loc=(theory*n),
-                                 scale=scale)
+        
+        likelihood = t.logpdf(self.data.sigma,
+                              x[self.scatter_index],
+                              loc=(theory*n),
+                              scale=self.data.erry)
+        likelihood = np.sum(likelihood)
+        return likelihood
+
+    def scatter_chi(self, x):
+        spline = self.read_fresco()
+        try:
+            theory = spline(self.data.theta)
+        except TypeError:
+            return spline
+        
+        likelihood = t.logpdf(self.data.sigma,
+                              x[self.scatter_index],
+                              loc=theory,
+                              scale=self.data.erry)
         likelihood = np.sum(likelihood)
         return likelihood
 
@@ -590,8 +630,19 @@ class Model():
         else:
             self.spec_priors.append(ScalePrior(means, widths))
 
-    def create_scatter_prior(self):
-        self.scatter_priors.append(ScatterPrior())
+    def create_scatter_prior(self, t_dof_mean=False):
+        """Create a prior for error adjustments
+
+        :param t_dof_mean: mean for the exponential prior
+        :returns: appends to scatter prior list
+        :rtype: NA
+
+        """
+
+        if t_dof_mean:
+            self.scatter_priors.append(DofPrior(t_dof_mean))
+        else:
+            self.scatter_priors.append(ScatterPrior())
     
     def create_pot_prior(self, means, widths):
         self.pot_priors.append(PotPrior(means, widths))
