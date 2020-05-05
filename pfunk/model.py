@@ -283,7 +283,7 @@ class LnLikeElastic(FrescoEval):
     """
 
     def __init__(self, filename, data, norm_index=False, scatter_index=False,
-                 remove=True):
+                 remove=True, fixed_scatter_dof=False):
         FrescoEval.__init__(self, filename, remove=remove)
 
         # This block makes sure we have a fc.DataObject
@@ -295,7 +295,11 @@ class LnLikeElastic(FrescoEval):
         # Whatever function is chosen we still call lnlike
         if isinstance(norm_index, int):
             self.i = norm_index
-            self.lnlike = self.norm_fresco_chi
+            if isinstance(fixed_scatter_dof, float):
+                self.dof = fixed_scatter_dof
+                self.lnlike = self.fixed_chi
+            else:
+                self.lnlike = self.norm_fresco_chi
         else:
             self.lnlike = self.fresco_chi
 
@@ -340,11 +344,13 @@ class LnLikeElastic(FrescoEval):
         except TypeError:
             return spline
         n = 10.0**(x[self.i])
+
+        scale = np.sqrt((self.data.erry)**2.0 +
+                        (n*theory*x[self.scatter_index])**2.0)
         
-        likelihood = t.logpdf(self.data.sigma,
-                              x[self.scatter_index],
-                              loc=(theory*n),
-                              scale=self.data.erry)
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory*n),
+                                 scale=scale)
         likelihood = np.sum(likelihood)
         return likelihood
 
@@ -354,14 +360,32 @@ class LnLikeElastic(FrescoEval):
             theory = spline(self.data.theta)
         except TypeError:
             return spline
-        
-        likelihood = t.logpdf(self.data.sigma,
-                              x[self.scatter_index],
-                              loc=theory,
-                              scale=self.data.erry)
+
+        scale = np.sqrt((self.data.erry)**2.0 +
+                        (theory*x[self.scatter_index])**2.0)
+
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=theory,
+                                 scale=scale)
         likelihood = np.sum(likelihood)
         return likelihood
 
+    def fixed_chi(self, x):
+        spline = self.read_fresco()
+        try:
+            theory = spline(self.data.theta)
+        except TypeError:
+            return spline
+        n = 10.0**(x[self.i])
+        
+        likelihood = norm.logpdf(self.data.sigma,
+                                 self.dof,
+                                 loc=(theory*n),
+                                 scale=self.data.erry)
+        likelihood = np.sum(likelihood)
+        return likelihood
+
+        
     
 class LnLikeTransfer(LnLikeElastic):
 
@@ -663,11 +687,13 @@ class Model():
         #     self.dream_priors.append(SampledParam(ele.pdf))
 
     def create_elastic_likelihood(self, filename, data, norm_index=None,
-                                  scatter_index=None, remove=True):
+                                  scatter_index=None, remove=True, fixed_scatter_dof=False):
         self.likelihood.append(LnLikeElastic(filename,
                                              data,
                                              norm_index=norm_index,
-                                             scatter_index=scatter_index, remove=remove))
+                                             scatter_index=scatter_index,
+                                             fixed_scatter_dof=fixed_scatter_dof,
+                                             remove=remove))
 
     def create_transfer_likelihood(self, filename, data, sf_index,
                                    scatter_index=None, norm_index=None, remove=True):

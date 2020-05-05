@@ -62,13 +62,14 @@ class ElasticStep(object):
 
 
 #Because of the constrains by the scipy otimize package this needed to be a class, or I would have had global variables out the ass.
-class ElasticFit():
+class MAPFit():
 
     def __init__(self, model, percent_range=.2, lnlike=False): #user selects what range they want to vary potentials within defualts to 20%
         self.model = model
         self.lnlike = lnlike
         self.fresco = model.fresco
         self.x0 = np.asarray(self.model.x0[:])
+        self.x0_custom = np.copy(self.x0) # These values can initialize, but do not change bounds.
         self.init_chi = self.lnprob(self.x0) #get inital chi square value
         print("The initial logprob value is ", self.init_chi) 
         fc.filerun('new_input')
@@ -126,7 +127,7 @@ class ElasticFit():
         
     #start a basin run
     def run(self):
-        result = opt.basinhopping(self.lnprob, self.x0,minimizer_kwargs={'method':'Nelder-Mead'},
+        result = opt.basinhopping(self.lnprob, self.x0_custom, minimizer_kwargs={'method':'Nelder-Mead'},
                                   niter=self.steps, stepsize=self.step_size,
                                   T=self.T, callback=self.print_fun,
                                   accept_test=self.bounds, take_step=self.take_step)
@@ -146,11 +147,11 @@ class ElasticFit():
         low, up = self.set_bounds(self.percent_range, bnds=False)
         bnds = [(i,j) for i,j in zip(low,up)]
         result = opt.dual_annealing(self.lnprob, bnds, maxiter=max_iter, local_search_options={'method':'Nelder-Mead'},
-                                    x0=self.model.x0, callback=self.print_fun)
+                                    x0=self.x0_custom, callback=self.print_fun)
         self.results = result
       
     def single_run(self):
-        result = opt.minimize(new_elastic_chi, self.x0, method='Nelder-Mead', args=(self.fresco, self.data))
+        result = opt.minimize(new_elastic_chi, self.x0_custom, method='Nelder-Mead', args=(self.fresco, self.data))
         self.results = result
 
     def special_sauce(self, iterations=50):
@@ -160,24 +161,6 @@ class ElasticFit():
             sys.stdout.write("\r Minimum %.4f, iteration %d." % (result.fun, i+1))
             self.accepted_values.append({'x':result.x, 'chi2':result.fun})
 
-class TransferFit(ElasticFit):
-
-    def __init__(self, fresco, elastic_data, transfer_data,
-                 names, line_numbers, percent_range=.2):
-        ElasticFit.__init__(self, fresco, elastic_data, names, line_numbers, percent_range=percent_range)
-        self.transfer_data = fc.read_data(transfer_data)
-        self.init_chi = transfer_chi(self.x0, self.fresco, self.data, self.transfer_data)
-
-    def run_transfer(self, elastic_first=True):
-        if elastic_first:
-            print("Fitting elastic first!")
-            self.run()
-            self.x0 = self.results.x
-            self.accepted_values = []
-            self.iterations = self.iterations - self.steps
-        result = opt.basinhopping(transfer_chi, self.x0, minimizer_kwargs={'method':'Nelder-Mead','args':(self.fresco, self.data, self.transfer_data)},
-                                  niter=self.steps, stepsize=self.step_size, T=self.T, callback=self.print_fun)
-        self.results = result
 
 
 
