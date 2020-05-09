@@ -69,9 +69,9 @@ class FlatPrior():
 class ScatterPrior():
 
 
-    def __init__(self):
+    def __init__(self, widths):
         self.means = np.array([0.0])
-        self.widths = np.array([1.0])
+        self.widths = np.array(widths)
         self.pdf = halfnorm(self.means, scale=self.widths)
         self.prior_len = 1
 
@@ -654,7 +654,7 @@ class Model():
         else:
             self.spec_priors.append(ScalePrior(means, widths))
 
-    def create_scatter_prior(self, t_dof_mean=False):
+    def create_scatter_prior(self, widths=[1.0], t_dof_mean=False):
         """Create a prior for error adjustments
 
         :param t_dof_mean: mean for the exponential prior
@@ -666,7 +666,7 @@ class Model():
         if t_dof_mean:
             self.scatter_priors.append(DofPrior(t_dof_mean))
         else:
-            self.scatter_priors.append(ScatterPrior())
+            self.scatter_priors.append(ScatterPrior(widths))
     
     def create_pot_prior(self, means, widths):
         self.pot_priors.append(PotPrior(means, widths))
