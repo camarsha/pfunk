@@ -26,7 +26,9 @@ class GenPrior():
 
     def __init__(self):
         self.pdf = norm()
-
+        self.means = np.array([1.0])
+        self.prior_len = 1
+        
     def lnprior(self, x):
         return np.sum(self.pdf.logpdf(x))
 
@@ -36,6 +38,11 @@ class GenPrior():
     def prior_rvs(self):
         return self.pdf.rvs()
 
+class PercentPrior(GenPrior):
+
+    def __init__(self):
+        self.pdf = uniform()
+        self.prior_len = 1
 
 class DofPrior(GenPrior):
     """
@@ -49,7 +56,7 @@ class DofPrior(GenPrior):
         self.prior_len = 1
 
     
-class FlatPrior():
+class FlatPrior(GenPrior):
 
     def __init__(self, lower, upper):
         self.means = np.array(lower)
@@ -57,16 +64,7 @@ class FlatPrior():
         self.pdf = uniform(loc=self.means, scale=(self.upper - self.means))
         self.prior_len = 1
 
-    def lnprior(self, x):
-        return np.sum(self.pdf.logpdf(x))
-
-    def prior_transform(self, x):
-        return self.pdf.ppf(x)
-
-    def prior_rvs(self):
-        return self.pdf.rvs()
-
-class ScatterPrior():
+class ScatterPrior(GenPrior):
 
 
     def __init__(self, widths):
@@ -75,17 +73,7 @@ class ScatterPrior():
         self.pdf = halfnorm(self.means, scale=self.widths)
         self.prior_len = 1
 
-    def lnprior(self, x):
-        return np.sum(self.pdf.logpdf(x))
-
-    def prior_transform(self, x):
-        return self.pdf.ppf(x)
-
-    def prior_rvs(self):
-        return self.pdf.rvs()
-
-
-class DPrior():
+class DPrior(GenPrior):
 
     """
     Handles the priors for normalizing variables.
@@ -105,17 +93,8 @@ class DPrior():
 
         self.pdf = norm(loc=means, scale=widths)
 
-    def lnprior(self, x):
-        return np.sum(self.pdf.logpdf(x))
 
-    def prior_transform(self, x):
-        return self.pdf.ppf(x)
-
-    def prior_rvs(self):
-        return self.pdf.rvs()
-
-
-class ScalePrior():
+class ScalePrior(GenPrior):
 
     """
     Handles the priors for normalizing variables.
@@ -135,17 +114,8 @@ class ScalePrior():
 
         self.pdf = halfnorm(loc=means, scale=widths)
 
-    def lnprior(self, x):
-        return np.sum(self.pdf.logpdf(x))
 
-    def prior_transform(self, x):
-        return self.pdf.ppf(x)
-
-    def prior_rvs(self):
-        return self.pdf.rvs()
-
-
-class PotPrior():
+class PotPrior(GenPrior):
 
     """
     Handles the priors for optical potential parameters.
@@ -166,15 +136,6 @@ class PotPrior():
         self.pdf = norm(loc=self.means,
                         scale=self.widths)
 
-    def lnprior(self, x):
-        return np.sum(self.pdf.logpdf(x))
-
-    def prior_transform(self, x):
-        return self.pdf.ppf(x)
-
-    def prior_rvs(self):
-        return self.pdf.rvs()
-    
 class Priors():
 
     """
@@ -283,7 +244,7 @@ class LnLikeElastic(FrescoEval):
     """
 
     def __init__(self, filename, data, norm_index=False, scatter_index=False,
-                 remove=True, fixed_scatter_dof=False):
+                 remove=True, fixed_scatter_dof=False, hier_index=None):
         FrescoEval.__init__(self, filename, remove=remove)
 
         # This block makes sure we have a fc.DataObject
@@ -305,8 +266,13 @@ class LnLikeElastic(FrescoEval):
 
         if isinstance(scatter_index, int):        
             self.scatter_index = scatter_index
-            if isinstance(norm_index, int):    
-                self.lnlike = self.norm_scatter_chi
+            if isinstance(hier_index, int):
+                self.hier_index = hier_index
+            if isinstance(norm_index, int):
+                if isinstance(hier_index, int):
+                    self.lnlike = self.norm_hier_chi
+                else:
+                    self.lnlike = self.norm_scatter_chi
             else:
                 self.lnlike = self.scatter_chi
 
@@ -385,7 +351,22 @@ class LnLikeElastic(FrescoEval):
         likelihood = np.sum(likelihood)
         return likelihood
 
-        
+    def norm_hier_chi(self, x):
+        spline = self.read_fresco()
+        try:
+            theory = spline(self.data.theta)
+        except TypeError:
+            return spline
+        n = 10.0**(x[self.i])
+        f = x[self.scatter_index]
+        h = x[self.hier_index] # hierarchical unit normal distribution
+        theory = theory + f*h*theory
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory*n),
+                                 scale=self.data.erry)
+        likelihood = np.sum(likelihood)
+        return likelihood
+
     
 class LnLikeTransfer(LnLikeElastic):
 
@@ -622,6 +603,7 @@ class Model():
         # first and then additional variables on top
         self.fresco.initial_values()
         self.x0_init = self.fresco.x0[:]
+        self.hier_priors = []
         self.norm_priors = []
         self.pot_priors = []
         self.spec_priors = []
@@ -654,7 +636,7 @@ class Model():
         else:
             self.spec_priors.append(ScalePrior(means, widths))
 
-    def create_scatter_prior(self, widths=[1.0], t_dof_mean=False):
+    def create_scatter_prior(self, widths=[1.0]):
         """Create a prior for error adjustments
 
         :param t_dof_mean: mean for the exponential prior
@@ -662,11 +644,10 @@ class Model():
         :rtype: NA
 
         """
+        self.scatter_priors.append(ScatterPrior(widths))
 
-        if t_dof_mean:
-            self.scatter_priors.append(DofPrior(t_dof_mean))
-        else:
-            self.scatter_priors.append(ScatterPrior(widths))
+    def create_hier_prior(self):
+        self.hier_priors.append(GenPrior())
     
     def create_pot_prior(self, means, widths):
         self.pot_priors.append(PotPrior(means, widths))
@@ -675,24 +656,27 @@ class Model():
     def create_prior(self):
         # This establishes the canonical order for our inputs
         # Normalization first, spectroscopic factors next, transfer scatter and finally fresco variables
-        prior_list = self.norm_priors + self.spec_priors + self.scatter_priors + self.pot_priors
+        prior_list = self.norm_priors + self.spec_priors + self.scatter_priors + self.hier_priors + self.pot_priors
         self.priors = Priors(prior_list)
         # We now set variables that will slice up the array passed by the sampler
         self.norm_len = len(self.norm_priors)
         self.sf_len = len(self.spec_priors)
         self.scatter_len = len(self.scatter_priors)
+        self.hier_len = len(self.hier_priors)
         self.x0 = self.priors.x0[:]
         # For compatibility with pydreams
         # for ele in prior_list:
         #     self.dream_priors.append(SampledParam(ele.pdf))
 
     def create_elastic_likelihood(self, filename, data, norm_index=None,
-                                  scatter_index=None, remove=True, fixed_scatter_dof=False):
+                                  scatter_index=None, remove=True,
+                                  fixed_scatter_dof=False, hier_index=None):
         self.likelihood.append(LnLikeElastic(filename,
                                              data,
                                              norm_index=norm_index,
                                              scatter_index=scatter_index,
                                              fixed_scatter_dof=fixed_scatter_dof,
+                                             hier_index=hier_index,
                                              remove=remove))
 
     def create_transfer_likelihood(self, filename, data, sf_index,
@@ -720,7 +704,7 @@ class Model():
 
 
     def run_fresco(self, x):
-        x_slice = x[(self.norm_len + self.sf_len + self.scatter_len):]
+        x_slice = x[(self.norm_len + self.sf_len + self.scatter_len + self.hier_len):]
         if x_slice.size > 0:
             self.fresco.swap_values(x_slice)
         # This handles the case of just normalization and spec factors
