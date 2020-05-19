@@ -38,6 +38,13 @@ class GenPrior():
     def prior_rvs(self):
         return self.pdf.rvs()
 
+class NNorm(GenPrior):
+
+    def __init__(self, N):
+        self.means = np.ones(N)
+        self.pdf = norm(loc=np.zeros(N))
+        self.prior_len = N
+
 class PercentPrior(GenPrior):
 
     def __init__(self):
@@ -245,7 +252,7 @@ class LnLikeElastic(FrescoEval):
     """
 
     def __init__(self, filename, data, norm_index=False, scatter_index=False,
-                 remove=True, fixed_scatter_dof=False, hier_index=None):
+                 remove=True, fixed_scatter_dof=False, hier_index=None, hier_stop=None):
         FrescoEval.__init__(self, filename, remove=remove)
 
         # This block makes sure we have a fc.DataObject
@@ -269,6 +276,7 @@ class LnLikeElastic(FrescoEval):
             self.scatter_index = scatter_index
             if isinstance(hier_index, int):
                 self.hier_index = hier_index
+                self.hier_stop = hier_stop
             if isinstance(norm_index, int):
                 if isinstance(hier_index, int):
                     self.lnlike = self.norm_hier_chi
@@ -360,7 +368,7 @@ class LnLikeElastic(FrescoEval):
             return spline
         n = 10.0**(x[self.i])
         f = x[self.scatter_index]
-        h = x[self.hier_index] # hierarchical unit normal distribution
+        h = x[self.hier_index:self.hier_stop] # hierarchical unit normal distribution
         theory = theory + f*h*theory
         likelihood = norm.logpdf(self.data.sigma,
                                  loc=(theory*n),
@@ -653,8 +661,8 @@ class Model():
         else:
             self.scatter_priors.append(ScatterPrior(widths))
 
-    def create_hier_prior(self):
-        self.hier_priors.append(GenPrior())
+    def create_hier_prior(self, n_data_points):
+        self.hier_priors.append(NNorm(n_data_points))
     
     def create_pot_prior(self, means, widths):
         self.pot_priors.append(PotPrior(means, widths))
@@ -678,12 +686,15 @@ class Model():
     def create_elastic_likelihood(self, filename, data, norm_index=None,
                                   scatter_index=None, remove=True,
                                   fixed_scatter_dof=False, hier_index=None):
+        if hier_index:
+            hier_stop = hier_index + self.hier_len  
         self.likelihood.append(LnLikeElastic(filename,
                                              data,
                                              norm_index=norm_index,
                                              scatter_index=scatter_index,
                                              fixed_scatter_dof=fixed_scatter_dof,
                                              hier_index=hier_index,
+                                             hier_stop=hier_stop,
                                              remove=remove))
 
     def create_transfer_likelihood(self, filename, data, sf_index,
