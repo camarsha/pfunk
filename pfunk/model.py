@@ -41,9 +41,10 @@ class GenPrior():
 class PercentPrior(GenPrior):
 
     def __init__(self):
+        GenPrior.__init__(self)
         self.pdf = uniform()
-        self.prior_len = 1
 
+        
 class DofPrior(GenPrior):
     """
     Defines an exponential prior intended for use
@@ -460,13 +461,13 @@ class LnLikeTransferTwoL(LnLikeElastic):
     """
 
     def __init__(self, filename1, filename2, data,
-                 sf_index1, sf_index2, scatter_index=None,
+                 sf_index, percent_index, scatter_index=None,
                  norm_index=None, remove=True):
         self.cs_eval1 = FrescoEval(filename1, remove=remove)
         self.cs_eval2 = FrescoEval(filename2, remove=remove)
 
-        self.sf_index1 = sf_index1
-        self.sf_index2 = sf_index2
+        self.sf_index = sf_index
+        self.percent_index = percent_index
         
         # This block makes sure we have a fc.DataObject
         try:
@@ -502,9 +503,9 @@ class LnLikeTransferTwoL(LnLikeElastic):
             theory2 = spline2(self.data.theta)
         except TypeError:
             return spline1  # read_fresco returned -inf
-        sf1 = np.prod(x[self.sf_index1])
-        sf2 = np.prod(x[self.sf_index2])
-        theory_total = sf1*theory1 + sf2*theory2
+        sf = np.prod(x[self.sf_index])
+        p = x[self.percent_index]
+        theory_total = sf*(p*theory1 + (1.0-p)*theory2)
         likelihood = norm.logpdf(self.data.sigma,
                                  loc=(theory_total),
                                  scale=self.data.erry)
@@ -523,10 +524,10 @@ class LnLikeTransferTwoL(LnLikeElastic):
             theory2 = spline2(self.data.theta)
         except TypeError:
             return spline1  # read_fresco returned -inf
-        sf1 = np.prod(x[self.sf_index1])
-        sf2 = np.prod(x[self.sf_index2])
         n = 10.0**(x[self.i])
-        theory_total = sf1*n*theory1 + sf2*n*theory2
+        sf = np.prod(x[self.sf_index])
+        p = x[self.percent_index]
+        theory_total = n*sf*(p*theory1 + (1.0-p)*theory2)
         
         likelihood = norm.logpdf(self.data.sigma,
                                  loc=(theory_total),
@@ -545,14 +546,15 @@ class LnLikeTransferTwoL(LnLikeElastic):
             theory2 = spline2(self.data.theta)
         except TypeError:
             return spline1  # read_fresco returned -inf
-        
-        sf1 = np.prod(x[self.sf_index1])
-        sf2 = np.prod(x[self.sf_index2])
+
         n = 10.0**(x[self.i])
-        theory_total = sf1*n*theory1 + sf2*n*theory2
+        sf = np.prod(x[self.sf_index])
+        p = x[self.percent_index]
+        theory_total = n*sf*(p*theory1 + (1.0-p)*theory2)
         
         scale = np.sqrt((self.data.erry)**2.0 +
                         (theory_total*x[self.scatter_index])**2.0)
+        
         likelihood = norm.logpdf(self.data.sigma,
                                  loc=(theory_total),
                                  scale=scale)
@@ -571,9 +573,9 @@ class LnLikeTransferTwoL(LnLikeElastic):
         except TypeError:
             return spline1  # read_fresco returned -inf
         
-        sf1 = np.prod(x[self.sf_index1])
-        sf2 = np.prod(x[self.sf_index2])
-        theory_total = sf1*theory1 + sf2*theory2
+        sf = np.prod(x[self.sf_index])
+        p = x[self.percent_index]
+        theory_total = sf*(p*theory1 + (1.0-p)*theory2)
 
         scale = np.sqrt((self.data.erry)**2.0 +
                         (theory_total*x[self.scatter_index])**2.0)
@@ -626,17 +628,19 @@ class Model():
         self.norm_priors.append(FlatPrior(means, widths))
 
         
-    def create_spec_prior(self, means, widths, gaus=False):
+    def create_spec_prior(self, means, widths, gaus=False, mixing_percent=False):
         try:
             spec_x0 = np.ones(len(means))
         except TypeError:
             spec_x0 = np.array([1.0])
         if gaus:
             self.spec_priors.append(DPrior(means, widths))
+        elif mixing_percent:
+            self.spec_priors.append(PercentPrior())
         else:
             self.spec_priors.append(ScalePrior(means, widths))
 
-    def create_scatter_prior(self, widths=[1.0]):
+    def create_scatter_prior(self, widths=[1.0], flat=False):
         """Create a prior for error adjustments
 
         :param t_dof_mean: mean for the exponential prior
@@ -644,7 +648,10 @@ class Model():
         :rtype: NA
 
         """
-        self.scatter_priors.append(ScatterPrior(widths))
+        if flat:
+            self.scatter_priors.append(PercentPrior())
+        else:
+            self.scatter_priors.append(ScatterPrior(widths))
 
     def create_hier_prior(self):
         self.hier_priors.append(GenPrior())
@@ -688,13 +695,13 @@ class Model():
                                                        norm_index=norm_index, remove=remove))
 
     def create_two_l_transfer_likelihood(self, filename1, filename2,
-                                         data, sf_index1, sf_index2,
+                                         data, sf_index, percent_index,
                                          scatter_index=None, norm_index=None, remove=True):
         self.transfer_likelihood.append(LnLikeTransferTwoL(filename1,
                                                            filename2,
                                                            data,
-                                                           sf_index1,
-                                                           sf_index2,
+                                                           sf_index,
+                                                           percent_index,
                                                            scatter_index=scatter_index,
                                                            norm_index=norm_index, remove=remove))
         
