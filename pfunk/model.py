@@ -663,7 +663,8 @@ class Model():
 
     def create_hier_prior(self, n_data_points):
         self.hier_priors.append(NNorm(n_data_points))
-    
+        self.hier_len = n_data_points
+        
     def create_pot_prior(self, means, widths):
         self.pot_priors.append(PotPrior(means, widths))
 
@@ -677,7 +678,7 @@ class Model():
         self.norm_len = len(self.norm_priors)
         self.sf_len = len(self.spec_priors)
         self.scatter_len = len(self.scatter_priors)
-        self.hier_len = len(self.hier_priors)
+        #self.hier_len = len(self.hier_priors)
         self.x0 = self.priors.x0[:]
         # For compatibility with pydreams
         # for ele in prior_list:
@@ -687,7 +688,9 @@ class Model():
                                   scatter_index=None, remove=True,
                                   fixed_scatter_dof=False, hier_index=None):
         if hier_index:
-            hier_stop = hier_index + self.hier_len  
+            hier_stop = hier_index + self.hier_len
+        else:
+            hier_stop = None
         self.likelihood.append(LnLikeElastic(filename,
                                              data,
                                              norm_index=norm_index,
