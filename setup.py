@@ -10,5 +10,5 @@ setup(name='P-Funk',
       url='https://github.com/dubiousbreakfast/MCMC-FRESCO',
       packages=find_packages(),
       install_requires=['pandas <= 24.0', 'matplotlib < 3.0',
-                        'corner', 'emcee>2.2.0', 'seaborn', 'dynesty']
+                        'corner', 'emcee>2.2.0', 'seaborn', 'dynesty', 'zeus-mcmc']
      )
