@@ -10,8 +10,8 @@ Caleb Marshall NCSU/TUNL 2019
 import numpy as np
 import dynesty as dy
 from scipy.stats import norm
-from scipy.stats import halfnorm
 from scipy.stats import uniform
+from scipy.stats import halfnorm
 from scipy.stats import halfcauchy
 from scipy.stats import lognorm
 from scipy.stats import t

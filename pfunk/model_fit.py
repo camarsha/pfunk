@@ -69,7 +69,7 @@ class MAPFit():
         self.lnlike = lnlike
         self.fresco = model.fresco
         self.x0 = np.asarray(self.model.x0[:])
-        self.x0_custom = np.copy(self.x0) # These values can initialize, but do not change bounds.
+        self.x0_custom = np.copy(self.x0) # These values initialize, but do not change bounds.
         self.init_chi = self.lnprob(self.x0) #get inital chi square value
         print("The initial logprob value is ", self.init_chi) 
         fc.filerun('new_input')
@@ -78,7 +78,7 @@ class MAPFit():
         self.iterations = 0 #number of basin hops completed
         self.percent_range = percent_range
         self.bounds = self.set_bounds(percent_range) #range we are allowed to jump around in. We will still sample, but auto rejected outside this range 
-
+            
         #These are default parameters that can be set with set_basin
         self.T = 1.0
         self.steps = 50

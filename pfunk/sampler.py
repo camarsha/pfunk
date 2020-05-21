@@ -1,6 +1,7 @@
 import numpy as np
 import emcee
 import dynesty
+import zeus
 
 class Sampler():
 
@@ -120,3 +121,7 @@ class Sampler():
         else:
             # Default behavior, 80/20 weight split and 100% posterior. 
             self.sampler.run_nested()
+
+    def run_slice_ensemble(self):
+        self.sampler = zeus.sampler(self.nwalker, self.ndim, self.model.lnprob)
+        self.sampler.run_mcmc(self.p0, self.nstep)
