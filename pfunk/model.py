@@ -78,9 +78,17 @@ class ScatterPrior(GenPrior):
     def __init__(self, widths):
         self.means = np.array([0.0])
         self.widths = np.array(widths)
-        self.pdf = halfnorm(self.means, scale=self.widths)
+        self.pdf = halfnorm(scale=self.widths)
         self.prior_len = 1
 
+class CauchyScatterPrior(GenPrior):
+
+    def __init__(self, widths):
+        self.means = np.array([0.0])
+        self.widths = np.array(widths)
+        self.pdf = halfnorm(scale=self.widths)
+        self.prior_len = 1
+        
 class DPrior(GenPrior):
 
     """
@@ -623,6 +631,7 @@ class Model():
         self.norm_len = 0
         self.sf_len = 0
         self.scatter_len = 0
+        self.hier_len = 0
         self.dream_priors = []
 
     # These series of methods create all of the elements
@@ -648,7 +657,7 @@ class Model():
         else:
             self.spec_priors.append(ScalePrior(means, widths))
 
-    def create_scatter_prior(self, widths=[1.0], flat=False):
+    def create_scatter_prior(self, widths=[1.0], flat=False, cauchy_width=None):
         """Create a prior for error adjustments
 
         :param t_dof_mean: mean for the exponential prior
@@ -658,6 +667,8 @@ class Model():
         """
         if flat:
             self.scatter_priors.append(PercentPrior())
+        elif cauchy_width:
+            self.scatter_priors.append(CauchyScatterPrior(cauchy_width))
         else:
             self.scatter_priors.append(ScatterPrior(widths))
 
