@@ -601,6 +601,58 @@ class LnLikeTransferTwoL(LnLikeElastic):
         likelihood = np.sum(likelihood) 
         return likelihood
 
+class LnLikeTransferTwoL_Test(LnLikeElastic):
+
+    """
+    Transfer likelihood functions that assume fresco has already
+    been run (i.e elastic likelihood has already been called).
+    For the two l case we assume one fresco file still produced
+    all of the cross sections.
+    """
+
+    def __init__(self, filename1, filename2, data,
+                 sf_index1, sf_index2, scatter_index=None,
+                 norm_index=None, remove=True):
+        self.cs_eval1 = FrescoEval(filename1, remove=remove)
+        self.cs_eval2 = FrescoEval(filename2, remove=remove)
+
+        self.sf_index1 = sf_index1
+        self.sf_index2 = sf_index2
+        
+        # This block makes sure we have a fc.DataObject
+        try:
+            self.data = fc.read_data(data)
+        except ValueError:
+            self.data = data
+
+        self.lnlike = self.norm_scatter_chi
+
+    def norm_scatter_chi(self, x):
+        """
+        Error estimate, f, is multiplied by the total cross section.
+        """
+        spline1 = self.cs_eval1.read_fresco()
+        spline2 = self.cs_eval2.read_fresco()
+        try:
+            theory1 = spline1(self.data.theta)
+            theory2 = spline2(self.data.theta)
+        except TypeError:
+            return spline1  # read_fresco returned -inf
+
+        n = 10.0**(x[self.i])
+        sf1 = np.prod(x[self.sf_index1])
+        sf2 = np.prod(x[self.sf_index2])
+        theory_total = n*sf1*theory1 + n*sf2*theory2
+        
+        scale = np.sqrt((self.data.erry)**2.0 +
+                        (theory_total*x[self.scatter_index])**2.0)
+        
+        likelihood = norm.logpdf(self.data.sigma,
+                                 loc=(theory_total),
+                                 scale=scale)
+        likelihood = np.sum(likelihood)
+        return likelihood
+
     
 class Model():
 
@@ -729,6 +781,19 @@ class Model():
                                                            percent_index,
                                                            scatter_index=scatter_index,
                                                            norm_index=norm_index, remove=remove))
+
+        
+    def create_two_l_transfer_likelihood_test(self, filename1, filename2,
+                                         data, sf_index1, sf_index2,
+                                         scatter_index=None, norm_index=None, remove=True):
+        self.transfer_likelihood.append(LnLikeTransferTwoL_Test(filename1,
+                                                                filename2,
+                                                                data,
+                                                                sf_index1,
+                                                                sf_index2,
+                                                                scatter_index=scatter_index,
+                                                                norm_index=norm_index, remove=remove))
+
         
     def create_likelihood(self):
         # If transfer reactions are just file reads after

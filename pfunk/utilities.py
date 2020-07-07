@@ -138,9 +138,24 @@ def plot_ci(lines, levels=[68.0, 95.0], data=None, colors=None, alpha=1.0,
     plt.ylim(1e-3, 1e2)
     plt.yscale('log')
     plt.xlim(-.2, 180.0)
-    plt.xlabel(r'$\theta_{c.\!m.}$', fontsize=32)
+    plt.xlabel(r'$\theta_{c.\!m.}$(deg)', fontsize=32)
     plt.ylabel(r'$\sigma(\theta_{c.\!m.})$(mb/sr)', fontsize=32)
     plt.tight_layout()
+
+def plot_ci_comp(lines, colors, alpha=0.6):
+    """Quickly generate multiple ci plots using just the 68% interval.
+
+    :param lines: cross section object
+    :param colors: list for each line
+    :returns: plots 
+    :rtype: plots?
+
+    """
+    if len(lines) != len(colors):
+        colors = colors[:len(lines)] # match the lengths
+    
+    for ele, c in zip(lines, colors):
+        plot_ci(ele, colors=[c], alpha=alpha, levels=[68.0])
 
 
 def cross_section_residual(lines, levels=[68.0, 95.0], data=None, cs_true=None, credibility=68.0):
@@ -215,3 +230,53 @@ def make_samples_dynesty(results):
     # Resample
     samples = dynesty.utils.resample_equal(results['samples'], weights)
     return samples
+
+def log_norm_parameters(samples):
+    """Estimate the lognormal parameters based on the 
+    given samples. Gaussian parameters are extracted from
+    the log of the samples, and then translated into the appropriate
+    lognormal parameters. There is no explicit fitting.
+
+    :param samples: numpy array of the samples
+    :returns: median, factor_unc
+    :rtype: float64
+
+    """
+    mu = np.log(samples).mean()
+    std = np.log(samples).std()
+
+    med = np.exp(mu)
+    fu = np.exp(std)
+    
+    x = np.linspace(samples.min(), samples.max(), 10000)
+    
+    plt.hist(samples, bins=50, normed=True)
+    plt.plot(x, lognorm.pdf(x, std, scale=med))
+    plt.show()
+    print('Median =', med)
+    print('f.u. =', fu)
+    print('Lognormal Credibility Interval =', med,'+/-',(med*fu-med),(med-(med/fu)))
+    # Show 68% ci jsut for comparison.
+    center = np.percentile(samples, 50.0) 
+    upper = np.percentile(samples, 84.0) - center 
+    lower = center - np.percentile(samples, 16.0) 
+    print('Credibility Interval of Samples =', center,'+/-',upper,lower)
+    return med, fu
+
+def mixed_transition_sf(sf, alpha):
+    """Function for convince that gives 
+    the two spectroscopic factors for a mixed 
+    l transition that is parameterized by a single
+    spectroscopic factor and a mixing parameter, alpha.
+    Returns the two spectroscopic factors.
+
+    :param sf: Combined spectroscopic factor samples.
+    :param alpha: Samples of alpha
+    :returns: sf1, sf2
+    :rtype: numpy arrays
+
+    """
+
+    sf1 = sf*alpha
+    sf2 = sf*(1-alpha)
+    return sf1, sf2
