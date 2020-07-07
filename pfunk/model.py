@@ -625,6 +625,8 @@ class LnLikeTransferTwoL_Test(LnLikeElastic):
         except ValueError:
             self.data = data
 
+        self.i = norm_index
+        self.scatter_index = scatter_index
         self.lnlike = self.norm_scatter_chi
 
     def norm_scatter_chi(self, x):
