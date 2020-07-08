@@ -655,7 +655,43 @@ class LnLikeTransferTwoL_Test(LnLikeElastic):
         likelihood = np.sum(likelihood)
         return likelihood
 
+
+class VR_LnLike():
+    """
+    Class for the likelihood of the vr ambiguity.
+    """
     
+    def __init__(self, v_index, r_index, c, percent=0.20, n=1.4):
+       """Set up the pdf.
+
+       :param v_index: index of the v parameter in the proposal x vector
+       :param r_index: index of the r parameter in the proposal x vector
+       :param c: constant calculated from global values
+       :param percent: percent range that is allowed
+       :param n: power to raise r to, global value indicates ~1.4
+       :returns: NA
+       :rtype: NA
+
+       """
+       
+       self.v_index = v_index
+       self.r_index = r_index
+       self.c = c
+       self.n = n
+       self.pdf = uniform(loc=(c-c*percent), scale=(2.0*c*percent))
+
+    def lnlike(self, x):
+        """Evaluates the lnprob of likelihood function
+
+        :param x: proposal array from sampler
+        :returns: lnprob value
+        :rtype: float
+
+        """
+        temp = x[self.v_index]*x[self.r_index]**(self.n)
+        likelihood = np.sum(self.pdf.logpdf(temp))
+        return likelihood
+        
 class Model():
 
     """
@@ -682,6 +718,7 @@ class Model():
         self.scatter_priors = []
         self.likelihood = []
         self.transfer_likelihood = []
+        self.vr_likelihood = []
         self.norm_len = 0
         self.sf_len = 0
         self.scatter_len = 0
@@ -733,7 +770,7 @@ class Model():
     def create_pot_prior(self, means, widths):
         self.pot_priors.append(PotPrior(means, widths))
 
-
+    
     def create_prior(self):
         # This establishes the canonical order for our inputs
         # Normalization first, spectroscopic factors next, transfer scatter and finally fresco variables
@@ -796,10 +833,13 @@ class Model():
                                                                 scatter_index=scatter_index,
                                                                 norm_index=norm_index, remove=remove))
 
+
+    def create_vr_likelihood(self, v_index, r_index, c, percent=0.20, n=1.4):
+        self.vr_likelihood.append(VR_LnLike(v_index, r_index, c, percent=percent, n=n))
         
     def create_likelihood(self):
         # If transfer reactions are just file reads after
-        self.likelihood = self.likelihood + self.transfer_likelihood
+        self.likelihood = self.likelihood + self.transfer_likelihood + self.vr_likelihood
 
 
     def run_fresco(self, x):
