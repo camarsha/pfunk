@@ -231,6 +231,25 @@ def make_samples_dynesty(results):
     samples = dynesty.utils.resample_equal(results['samples'], weights)
     return samples
 
+def evidence_unc(results):
+    """Copy and paste job of a function to 
+    estimate the statistical and sampling uncertainties
+    of nested sampling evidence estimation.
+
+    :param results: object returned from dynesty sampler
+    :returns: results object with well defined 'logzerr' 
+    :rtype: some sort of dictionary thingy
+
+    """
+
+    lnzs = np.zeros((100, len(results.logvol)))
+    for i in range(100):
+        r = dynesty.utils.simulate_run(results, approx=True)
+        lnzs[i] = np.interp(-results.logvol, -r.logvol, r.logz)
+    lnzerr = np.std(lnzs, axis=0)
+    results['logzerr'] = lnzerr
+    return results
+
 def log_norm_parameters(samples):
     """Estimate the lognormal parameters based on the 
     given samples. Gaussian parameters are extracted from
