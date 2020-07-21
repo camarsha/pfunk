@@ -235,7 +235,7 @@ class FrescoEval():
     def read_fresco(self):
         try:
             cross = fc.read_cross(self.filename)
-        except IOError:
+        except (IOError, pd.errors.EmptyDataError, FileNotFoundError):
             return -1.0*np.inf
         if self.remove:
             os.remove(self.filename)
