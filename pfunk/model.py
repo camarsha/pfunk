@@ -9,6 +9,7 @@ Caleb Marshall NCSU/TUNL 2019
 """
 import numpy as np
 import dynesty as dy
+import pandas as pd
 from scipy.stats import norm
 from scipy.stats import uniform
 from scipy.stats import halfnorm
