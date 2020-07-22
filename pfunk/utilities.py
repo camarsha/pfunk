@@ -269,7 +269,7 @@ def log_norm_parameters(samples):
     
     x = np.linspace(samples.min(), samples.max(), 10000)
     
-    plt.hist(samples, bins=50, normed=True)
+    plt.hist(samples, bins=50, density=True)
     plt.plot(x, lognorm.pdf(x, std, scale=med))
     plt.show()
     print('Median =', med)

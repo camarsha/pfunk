@@ -689,6 +689,8 @@ class VR_LnLike():
         :rtype: float
 
         """
+        if x[self.r_index] < 0.0:
+            return -1.0*np.inf
         temp = x[self.v_index]*x[self.r_index]**(self.n)
         likelihood = np.sum(self.pdf.logpdf(temp))
         return likelihood

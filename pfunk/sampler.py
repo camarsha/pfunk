@@ -40,15 +40,16 @@ class Sampler():
         except TypeError:
             print("Model parameters n and c have not been initialized.")
 
-    def multimodal_init(self, modes, r_limits=[], scatter=1.e-2):
-        """
-        This divides the walkers evenly between the modes given.
-        The modes are in terms of n, c parameters like in cont_init
-        function. "r_limits" is a list that contains the r range
-        to use the Vr^n = c relationship over.
+    def check_p0(self):
+        """Check the lnprob values of the starting values.
+
+        :returns: lnprob values of the each p0
+        :rtype: np.array
+
         """
 
-        return None
+        vals = np.apply_along_axis(self.model.lnprob, 1, self.p0)
+        return vals
 
     def prior_sample_init(self):
         self.ball_init()
