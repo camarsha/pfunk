@@ -152,7 +152,7 @@ class DataObject(LineObject):
         #We do not expect all data files to have errors
         self.erry = np.asarray(erry)
 
-            
+
 class NamelistInput():
 
     """
@@ -163,7 +163,7 @@ class NamelistInput():
     def __init__(self, filename):
 
         self.initial_file = []
-        
+
         with open(filename, 'r') as f:
             for line in f:
                 self.initial_file.append(line)
@@ -185,13 +185,13 @@ class NamelistInput():
     def find_tuples(self, alist):
         # Just create a list with all the tuple indices, i.e duplicate values.
         self.dup_size = [len(i) if isinstance(i, tuple) else 1 for i in alist]
-                                
+
     def create_names_positions(self, names, positions):
         self.find_tuples(positions)
         self.names = self.unpacklist(names)
         self.name_positions = self.unpacklist(positions)                        
         self.unique_name_positions = [i[0] if isinstance(i, tuple) else i for i in positions]
-        
+
     def transform_values(self, values):
                                 
         """

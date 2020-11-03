@@ -300,15 +300,3 @@ def mixed_transition_sf(sf, alpha):
     sf2 = sf*(1-alpha)
     return sf1, sf2
 
-def calc_RatesMC(samples):
-    """
-    Take the samples and output the parameters needed by
-    rates_mc. 
-    """
-    
-    mu = np.log(samples).mean()
-    var = np.log(samples).var()
-
-    E = np.exp((2.0*mu+var)/2.0)
-    sqrt_V = np.sqrt(np.exp(2.0*mu+var)*(np.exp(var) - 1.0))
-    return E, sqrt_V
