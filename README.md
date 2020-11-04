@@ -1,1 +1,1 @@
-![alt text](https://github.com/dubiousbreakfast/pfunk/docs/pfunk.png?raw=true)
+![](<docs/pfunk.png>)
