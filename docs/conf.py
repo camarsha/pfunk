@@ -35,7 +35,7 @@ import sphinx_rtd_theme
 
 extensions = [
     'sphinx_rtd_theme', 'sphinx.ext.autodoc',
-    'nbsphinx', 'sphinx.ext.mathjax'
+    'sphinx.ext.mathjax'
 ]
 
 html_theme = "sphinx_rtd_theme"
