@@ -5,16 +5,19 @@
 
 Welcome to pfunk's documentation!
 =================================
+*Python Fresco UNcertainty Funkutation*
+
 .. image:: pfunk.png
+
+pfunk is a set of python modules that helps create likelihood functions
+and prior probabilities for Bayesian inference.
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   /guide/api
+   /guide/basics
 
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

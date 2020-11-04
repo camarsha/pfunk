@@ -11,12 +11,28 @@ import pandas as pd
 
 
 def filerun(filename):
+    """filerun(filename)
+    Runs a fresco input file. Output is piped into /dev/null
+    in order to avoid writing output file.
+    
+    :param filename: name of the fresco input file to run 
+    :returns: None
+    :rtype: None
+
+    """
     command = 'fresco' + '<' + filename + '> /dev/null' 
     os.system(command)
 
         
 # Reads fort.200 files returns LineObject
 def read_cross(filename):
+    """FIXME! briefly describe function
+
+    :param filename: 
+    :returns: 
+    :rtype: 
+
+    """
     cross = pd.read_csv(filename, sep='\s+', skiprows=10, header=None)
     theta = cross[cross.columns[0]].tolist()[:-1]
     sigma = cross[cross.columns[1]].tolist()[:-1]
