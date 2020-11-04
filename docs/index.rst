@@ -5,7 +5,7 @@
 
 Welcome to pfunk's documentation!
 =================================
-
+.. image:: pfunk.png
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
