@@ -18,6 +18,6 @@ and prior probabilities for Bayesian inference.
    :caption: Contents:
 
    /guide/api
-   /guide/basics
-
+   /guide/basic_usage
+   /notebooks/max_like/maxlike
 
