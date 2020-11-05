@@ -19,5 +19,5 @@ and prior probabilities for Bayesian inference.
 
    /guide/api
    /guide/basic_usage
-   /notebooks/max_like/maxlike
+   /notebooks/notebooks
 

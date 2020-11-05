@@ -1,6 +1,4 @@
-=========
-Notebooks
-=========
+.. _maxlikenb:
 
 :math:`\chi^2` Example
 ======================

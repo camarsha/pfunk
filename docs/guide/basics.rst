@@ -1,3 +1,5 @@
+.. _maxlikeguide:
+
 Maximum Likelihood Fit ( i.e., a :math:`\chi^2`-fit)
 ====================================================
 
@@ -198,8 +200,8 @@ Annealing usually provides the best compromise between speed and search range:
 
 This will print out a message after each iteration, but the message will not make too much sense. The first value
 is the current value of likelihood function, which you should check to make sure everything is still going smoothly.
-After this finishes the minimized parameter values can be found in the array :code:`fit.results.x`. The below notebook
-shows how to do this calculation and plot the results.
+After this finishes the minimized parameter values can be found in the array :code:`fit.results.x`. An example of this
+calculation can be found in this :ref:`example <maxlikenb>`.
 
 
    
