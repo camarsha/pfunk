@@ -1,0 +1,87 @@
+48Ca(p,p) 25.0 MeV
+NAMELIST
+&fresco
+    hcm = 0.1
+    rmatch = 40.0
+    jtmax = 20
+    absend = 0
+    jump(1:6) = 0, 0, 0, 0, 0, 0
+    jbord(1:6) = 0, 0, 0, 0, 0.0, 0.0
+    kqmax = 1
+    thmin = 0.0
+    thmax = 180.0
+    thinc = 1.0
+    it0 = 1
+    smats = 2
+    xstabl = 1
+    elab(1:4) = 25.0, 0, 0, 0
+    nlab(1:3) = 0, 0, 0
+/
+
+&partition
+    namep = 'p'
+    massp = 1
+    zp = 1
+    namet = 'Ca'
+    masst = 48
+    zt = 20
+    qval = 0.0
+    pwf = .false.
+    nex = 1
+/
+
+
+&states
+    jp = 0.5
+    bandp = 1
+    cpot = 1
+    jt = 0.0
+    bandt = 1
+/
+
+
+&partition
+/
+
+&pot
+    kp = 1
+    at = 48
+    rc = 1.25
+/
+
+&pot
+    kp = 1
+    type = 1
+    p1 = 51.42176703085552
+    p2 = 1.1684140674307548
+    p3 = 0.6783204136484668
+    p4 = 0.5182274024175495
+    p5 = 1.3139268976599785
+    p6 = 0.607873944367093
+/
+
+&pot
+    kp = 1
+    type = 2
+    p4 = 7.542611636593458
+    p5 = 1.3139268976599785
+    p6 = 0.607873944367093
+/
+
+&pot
+    kp = 1
+    type = 3
+    shape = 0
+    p1 = 6.2
+    p2 = 1.01
+    p3 = 0.75
+/
+
+&pot
+/
+
+&overlap
+/
+
+&coupling
+/
