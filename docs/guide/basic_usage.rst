@@ -8,4 +8,4 @@ Basic Usage
 
    /guide/basics
    /guide/bays_fit
-
+   /guide/nested

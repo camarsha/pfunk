@@ -149,7 +149,10 @@ Setup the sampler.
 
 .. code:: ipython3
 
-    p = corner.corner(s, bins=50, smooth=1.5)
+    labels = ['$V$', '$r_0$', '$a_0$', '$W$', '$r_i$', '$a_i$', '$W_S$']
+    p = corner.corner(s, bins=50, smooth=1.5, labels=labels, 
+                      show_titles=True, title_kwargs={'fontsize':17.0}, 
+                      label_kwargs={'fontsize':17.0})
 
 
 
@@ -203,3 +206,4 @@ Let’s zoom in to get a better view.
 
 It is obvious that there are several issues with this fit. These will be
 examined in the next few sections.
+
