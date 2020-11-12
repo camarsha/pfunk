@@ -9,3 +9,4 @@ Notebooks
 
    max_like/maxlike
    simple_bays/SimpleBay
+   nested/nested

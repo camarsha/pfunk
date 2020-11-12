@@ -35,10 +35,11 @@ Now create an instance of a sampler object
    sampler = pfunk.sampler.Sampler(model)
 
 We want to use static nested sampling for this calculation. The default
-stoping condition is :math:`Z = 0.01` with :math:`250` live points. 
+stopping condition is :math:`\Delta Z = 0.01` with :math:`250` live points. 
 
 
 .. code-block:: python
 
    sampler.run_nested()
+
 

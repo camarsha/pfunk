@@ -54,4 +54,5 @@
 
 .. image:: nested_files/nested_6_0.png
 
-
+And with this result we can better understand why the MCMC samples showed some pathological
+behaviour. 
