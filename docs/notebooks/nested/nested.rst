@@ -1,3 +1,6 @@
+Nested
+======
+
 .. code:: ipython3
 
     %matplotlib inline
