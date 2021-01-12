@@ -121,11 +121,13 @@ def plot_ci(lines, levels=[68.0, 95.0], data=None, colors=None, alpha=1.0,
         angles = np.arange(len(ci[0, :]))
         spline_angles = np.linspace(0, len(angles), 100000)
 
-        lower_spline = interpolate.splrep(angles, ci[0, :])
-        lower = interpolate.splev(spline_angles, lower_spline)
+        lower_spline = interpolate.UnivariateSpline(angles,
+                                                    ci[0, :], s=0)
+        lower = lower_spline(spline_angles)
 
-        upper_spline = interpolate.splrep(angles, ci[-1, :])
-        upper = interpolate.splev(spline_angles, upper_spline)
+        upper_spline = interpolate.UnivariateSpline(angles,
+                                                    ci[-1, :], s=0)
+        upper = upper_spline(spline_angles)
 
         plt.fill_between(spline_angles,
                          lower, upper, hatch=hatch, linestyle=linestyle,
@@ -159,7 +161,7 @@ def plot_ci_comp(lines, colors, alpha=0.6):
 
 
 def cross_section_residual(lines, levels=[68.0, 95.0], data=None, cs_true=None, credibility=68.0):
-    angle_range = np.asarray(lines[0].theta[:], dtype='float', colors=None)
+    angle_range = np.asarray(lines[0].theta[:], dtype='float')
     # ci = confidence_bands(lines, percentiles=[low, 50.0, high])
     if colors:
         fill_colors = colors

@@ -9,7 +9,6 @@ def filerun(filename):
     in order to avoid writing output file.
 
     :param filename: name of the fresco input file to run
-    :returns: None
 
     """
     command = 'fresco' + '<' + filename + '> /dev/null'
@@ -104,6 +103,17 @@ class DataObject(Angles):
         Angles.__init__(self, theta, sigma)
         self.erry = np.asarray(erry)
 
+    # def rutherford(self, E_lab, theta):
+    
+    #     T = self.E_lab * (self.A.m)/(self.a.m + self.A.m)
+    #     # First all the constant parts.
+    #     const = 1.296*((self.a.Z*self.A.Z)/T)**2.0
+    #     theta = (np.pi/180.0)*(theta/2.0)  # Go ahead and convert
+    #     temp = np.sin(theta)**(4.0)
+    #     sigma_R = const*(1.0/temp)
+    #     return sigma_R
+
+    # def ratio_to_rutherford(self, a, A, b, B, E_lab, theta) 
 
 class NamelistInput():
 
@@ -127,7 +137,8 @@ class NamelistInput():
                 self.initial_file.append(line)
 
         self.name_positions = []
-        self.new_file = np.asarray(self.initial_file[:])
+        # Bug fix, array could be cut off due to dtype being too short.
+        self.new_file = np.asarray(self.initial_file[:], dtype='<U60')
         self.names = []
 
     def unpacklist(self, alist):
