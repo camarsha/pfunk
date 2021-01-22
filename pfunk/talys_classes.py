@@ -20,7 +20,7 @@ def filerun(filename):
 def make_energies(low, high, spacing, filename='range'):
     energies = np.linspace(low, high, spacing)
     energies = np.around(energies, decimals=3)
-    np.savetxt(filename, energies)
+    np.savetxt(filename, energies, fmt='%.3f')
 
 # class TalysInput(fc.NamelistInput):
 

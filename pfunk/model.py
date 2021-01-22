@@ -674,13 +674,12 @@ class VR_LnLike():
         :returns: NA
         :rtype: NA
 
-        """
-       
-       self.v_index = v_index
-       self.r_index = r_index
-       self.c = c
-       self.n = n
-       self.pdf = uniform(loc=(c-c*percent), scale=(2.0*c*percent))
+        """       
+        self.v_index = v_index
+        self.r_index = r_index
+        self.c = c
+        self.n = n
+        self.pdf = uniform(loc=(c-c*percent), scale=(2.0*c*percent))
 
     def lnlike(self, x):
         """Evaluates the lnprob of likelihood function
