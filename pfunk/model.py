@@ -458,15 +458,16 @@ class LnLikeTransfer(LnLikeElastic):
         try:
             theory = spline(self.data.theta)
         except TypeError:
-            return spline #  read_fresco returned -inf
+            return spline  # read_fresco returned -inf
         sf = np.prod(x[self.sf_index])
         scale = np.sqrt((self.data.erry)**2.0 +
                         (sf*theory*x[self.scatter_index])**2.0)
         likelihood = norm.logpdf(self.data.sigma,
                                  loc=(theory*sf),
                                  scale=scale)
-        likelihood = np.sum(likelihood) 
+        likelihood = np.sum(likelihood)
         return likelihood
+
 
 class LnLikeTransferTwoL(LnLikeElastic):
 
@@ -505,8 +506,7 @@ class LnLikeTransferTwoL(LnLikeElastic):
                 self.lnlike = self.norm_scatter_chi
             else:
                 self.lnlike = self.scatter_chi
-
-                
+            
     def fresco_chi(self, x):
         """
         Likelihood that reads both cross sections
@@ -602,6 +602,7 @@ class LnLikeTransferTwoL(LnLikeElastic):
         likelihood = np.sum(likelihood) 
         return likelihood
 
+
 class LnLikeTransferTwoL_Test(LnLikeElastic):
 
     """
@@ -663,17 +664,17 @@ class VR_LnLike():
     """
     
     def __init__(self, v_index, r_index, c, percent=0.20, n=1.4):
-       """Set up the pdf.
+        """Set up the pdf.
+        
+        :param v_index: index of the v parameter in the proposal x vector
+        :param r_index: index of the r parameter in the proposal x vector
+        :param c: constant calculated from global values
+        :param percent: percent range that is allowed
+        :param n: power to raise r to, global value indicates ~1.4
+        :returns: NA
+        :rtype: NA
 
-       :param v_index: index of the v parameter in the proposal x vector
-       :param r_index: index of the r parameter in the proposal x vector
-       :param c: constant calculated from global values
-       :param percent: percent range that is allowed
-       :param n: power to raise r to, global value indicates ~1.4
-       :returns: NA
-       :rtype: NA
-
-       """
+        """
        
        self.v_index = v_index
        self.r_index = r_index
