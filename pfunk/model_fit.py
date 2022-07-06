@@ -9,7 +9,6 @@ import sys
 from scipy.stats import uniform
 
 
-
 # General utilities for quick spectroscopic factor checks.
 
 def cross_interpolate(cross):
@@ -55,9 +54,7 @@ class ElasticStep(object):
         self.stepsize = stepsize
     def __call__(self, x):
         s = self.stepsize
-        #x[0] += np.random.uniform(-500.*s, 500.*s)
         x[:] += np.random.uniform(-s, s, x[:].shape)
-        #x[3] += np.random.uniform(-10.*s, 10.*s)
         return x
 
 
@@ -108,8 +105,8 @@ class MAPFit():
         upper = []
         lower = []
         for ele in self.x0: 
-                lower.append(ele - (percent*ele))
-                upper.append(ele + (percent*ele))
+                lower.append(ele - (percent*np.abs(ele)))
+                upper.append(ele + (percent*np.abs(ele)))
         if bnds:
             bounds = BasinBounds(upper,lower)
             return bounds
